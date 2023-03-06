@@ -7,98 +7,87 @@ class TBigInt
 {
 public:
 	typedef unsigned int IntType;
-	static const int m_MaxPerData = 1000000000;// 10ÒÚ£¬ Ã¿Æ¬BigIntµÄ×î´óÖµ
-	static const int m_OneTenthOfMaxPerData = m_MaxPerData/10;// 1ÒÚ£¬Ã¿Æ¬BigIntÔÚ³ËÒÔ10£¬Ç°µÄ×î´óÖµ£»³¬³öÕâ¸öÖµ¾ÍÏÈ½øÎ»ÔÙ×ö³ËÒÔ10
-	static const int m_NumberCountPerData = 9; //Ã¿Æ¬BigInt±í´ïµÄÊı×Ö¸öÊı
+	static const int m_MaxPerData = 1000000000;// 10äº¿ï¼Œ æ¯ç‰‡BigIntçš„æœ€å¤§å€¼
+	static const int m_OneTenthOfMaxPerData = m_MaxPerData/10;// 1äº¿ï¼Œæ¯ç‰‡BigIntåœ¨ä¹˜ä»¥10ï¼Œå‰çš„æœ€å¤§å€¼ï¼›è¶…å‡ºè¿™ä¸ªå€¼å°±å…ˆè¿›ä½å†åšä¹˜ä»¥10
+	static const int m_NumberCountPerData = 9; //æ¯ç‰‡BigIntè¡¨è¾¾çš„æ•°å­—ä¸ªæ•°
 public:
 	static void Text2Uint(
-		const char* text, int size,
+		//è¾“å…¥çš„å­—ç¬¦ä¸²ï¼Œä»¥åŠå­—ç¬¦ä¸²çš„é•¿åº¦
+		const char* text, int textSize,
+		//è¿”å›çš„åœ°å€ï¼Œä»¥åŠè¯¥å†…å­˜å¯¹è±¡çš„é•¿åº¦
 		IntType* ret, int& retSize
 	) {
-
-		//¼ì²éÊäÈë²ÎÊı
-		if (NULL == text || NULL == ret || size < 1 || retSize < 1) {
+		//æ£€æŸ¥è¾“å…¥å‚æ•°
+		if (NULL == text || NULL == ret || textSize < 1 || retSize < 1) {
 			retSize = 0;
 			return;
 		}
-		memset((void*)ret, 0, sizeof(IntType) * retSize);
-		int pos = 1;
-		unsigned& data = ret[0];
-
-		//´¦ÀíÃ¿¸öÊ®½øÖÆÊı×Ö
-		for (int index = 0; index < size; ++index) {
-			unsigned char ch = text[index];
-			//Åöµ½´íÎóµÄ×Ö·û£¬ÔòºóÃæ×Ö·û²»´¦ÀíÁË
-			if (ch < '0' || ch > '9') {
-				break;
-			}
-			//´Ó¸ßµ½µÍ£¬Ã¿¸öÕûÊıÆ¬¶Î¶¼³ËÒÔ10
-			for (int i = pos - 1; i >= 0; --i) {
-				if (ret[i] > m_OneTenthOfMaxPerData) {
-					ret[i + 1] += ret[i] / (m_OneTenthOfMaxPerData);
-					ret[i] = ret[i] % (m_OneTenthOfMaxPerData);
-				}
-				ret[i] *= 10;
-			}
-			//×îµÍÎ»¼ÓÉÏĞÂÊı×Ö
-			ret[0] += ch - '0';
-			//ÅĞ¶Ï½øÎ»
-			/*
-			for (int i = 0; i < pos; ++i) {
-				if (ret[i] > m_MaxPerData)
-				{
-					ret[i + 1] = ret[i] / m_MaxPerData;
-					ret[i] %= m_MaxPerData;
-				}
-			}
-			*/
-			//Èç¹û×î¸ßÎ»½øÎ»ÁË
-			if (ret[pos] != 0) {
-				if (pos > retSize - 1) {
-					retSize = 0;
-					return;
-				}
-				pos++;
-			}
+		int count = textSize / 9 + 1;
+		if (count >= retSize) {
+			retSize = 0;
+			return;
 		}
-		//È«²¿´¦ÀíÍê±Ï£¬Ôò·µ»Ø
-		retSize = pos;
-		return;
+		ret[count] = 0;
+
+		//å¤„ç†æ¯ä¸ªåè¿›åˆ¶æ•°å­—
+		char* pos = (char*)text + textSize;
+		for (int index = count-1; index > 0 ; --index) {
+			pos -= 9;
+			int value = 0;
+			for (int i = 0; i < 9; ++i) {
+				value = value * 10 + pos[i] - '0';
+			}
+			ret[index] = value;
+		}
+		{
+			int len = (long long)pos - (long long)text;
+			int value = 0;
+			for (int i = 0; i < len; ++i)
+			{
+				value = value * 10 + text[i] - '0';
+			}
+			ret[0] = value;
+		}
+		retSize = count;
 	}
 public:
 	static void Uint2Text(
 		IntType* data, int dataSize,
-		char* text, int& textSize
+		char* ret, int& retSize
 	) {
-		if (dataSize * 9 >= textSize) {
-			textSize = 0;
+		if (dataSize * 9 >= retSize) {
+			retSize = 0;
 			return;
 		}
-		//½«·µ»ØÄÚ´æÈ«²¿Çå¿Õ
-		memset(text, 0, textSize);
-		int pos = textSize - 1;
-		//±éÀú´óÕûÊıµÄÃ¿¿éÊı¾İ
-		for (int i = 0; i < dataSize; ++i) {
+		//å°†è¿”å›å†…å­˜å…¨éƒ¨æ¸…ç©º
+		memset(ret, 0, retSize);
+		int pos = 0;
+		//éå†å¤§æ•´æ•°çš„æœ€é«˜ä½æ•°æ®
+		{
+			//æœ€é«˜ä½å‰çš„0ï¼Œæ²¡æœ‰æ„ä¹‰ï¼Œå»æ‰
+			int value = data[0];
+			int count = 0;
+			for (; value != 0; ++count) {
+				value = value / 10;
+			}
+			value = data[0];
+			for (pos = count-1; pos >= 0; --pos) {
+				ret[pos] = value%10 + '0';
+				value = value / 10;
+			}
+			pos = count;
+		}
+
+		for (int i = 1; i < dataSize; ++i) {
 			int v = data[i];
-			//Ã¿¿éÊı¾İ¶¼×ªÎª10½øÖÆÊıÊä³ö
-			for (int j = 0; j < m_NumberCountPerData; ++j) {
-				text[--pos] = '0' + v % 10;
+			//æ¯å—æ•°æ®éƒ½è½¬ä¸º10è¿›åˆ¶æ•°è¾“å‡º
+			for (int j = m_NumberCountPerData-1; j >= 0; --j) {
+				ret[pos+j] = '0' + v % 10;
 				v = v / 10;
 			}
+			pos += m_NumberCountPerData;
 		}
-		//È¥µôÊı×Ö¿ªÊ¼µÄ0
-		int pos2 = pos;
-		for (; pos2 < textSize; ++pos2) {
-			if (text[pos2] != '0') {
-				break;
-			}
-		}
-		//½«Êı×Ö¿ª±¦µ½ÄÚ´æµÃµ½¿ªÍ·
-		for (int i = pos2; i < textSize; ++i) {
-			text[i-pos2] = text[i];
-		}
-		//·µ»ØÓĞĞ§×Ö·û¸öÊı
-		textSize = textSize-pos2-1;
+		retSize = pos;
 	}
 };
 
