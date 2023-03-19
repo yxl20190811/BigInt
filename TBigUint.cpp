@@ -16,17 +16,22 @@ TBigUint::~TBigUint()
 	}
 
 }
+
+
 void TBigUint::BinText2This(const char* text)
 {
-	char  tmp[STACK_TMP_SIZE]{ 0 };
-	char* buf = tmp;
+	//分配一块内存，以便存放转换后的整数
 	int len = strlen(text);
-	if (len / 8 >= STACK_TMP_SIZE) {
-		buf = (char*)malloc(len / 8 + 1);
-		if (NULL == buf) {
-			abort();
-		}
+	if (len <= 0) {
+		m_BufSize = 0;
+		return;
 	}
+	char* buf = (char*)malloc(len / 8 + 1);
+	if (NULL == buf) { abort(); }
+	m_buf = buf;
+	m_BufSize = 0;
+	
+	//遍历每个二进制字符转为二进制整数
 	int count = 0;
 	int pos = 0;
 	unsigned char value = 0;
@@ -36,8 +41,11 @@ void TBigUint::BinText2This(const char* text)
 			continue;
 		}
 		ch -= '0';
+
+		//将二级制字符放到整数的对应位上
 		value |= (ch << count);
 		++count;
+		//长度超出一个字节8位后，将整个字节放到临时内存对应字节去
 		if (count >= 8) {
 			buf[pos++] = value;
 			value = 0;
@@ -45,22 +53,12 @@ void TBigUint::BinText2This(const char* text)
 		}
 
 	}
+	//最后的字符转为的整数，也需要放到临时内存的对应字节去
 	if (0 != value) {
 		buf[pos++] = value;
 	}
-	if (buf != tmp) {
-		m_buf = buf;
-	}
-	else
-	{
-		if (pos >= m_BufSize) {
-			if (NULL != m_buf) {
-				free(m_buf);
-			}
-			m_buf = (char*)malloc(pos + 1);
-		}
-		memcpy(m_buf, buf, pos);
-	}
+
+	//记录转换后到真正的长度
 	m_BufSize = pos;
 }
 
@@ -74,12 +72,15 @@ int TBigUint::toBinText(char* buf, int size)
 		unsigned char ch = m_buf[i];
 		for (int j = 7; j >= 0; --j) {
 			 char ch1 = ((ch & mask[j]) >> j) + '0';
+			 //最高位的'0'省略
 			 if (isFirstCh && ch1 == '0') {
 				 continue;
 			 }
 			 buf[pos++] = ch1;
 			 isFirstCh = false;
-			 if (pos >= size-1) {
+			 //如果传入的内存大小不够，则直接返回后面的字符不再输出
+			 if (pos >= size-2) {
+				 buf[pos] = 0;
 				 return pos;
 			 }
 		}
@@ -95,6 +96,7 @@ int TBigUint::toOctText(char* buf, int size)
 	int pos = 0;
 	int index = 0;
 	bool isFirstZero = true;
+	//最高位的字符，需要将无效的最高位置0. 所以专门处理
 	if (m_BufSize % 3 != 0) {
 		unsigned int value = *(unsigned int*)(buf + m_BufSize - m_BufSize%3);
 		if (m_BufSize % 3 == 2) {
@@ -122,6 +124,9 @@ int TBigUint::toOctText(char* buf, int size)
 	else {
 		index = m_BufSize - 3;
 	}
+
+
+
 	for (; index >=0; index -= 3) {
 		unsigned int value = *(unsigned int*)(m_buf + index);
 		for (int j = 7; j >= 0; --j) {
